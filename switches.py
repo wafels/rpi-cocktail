@@ -44,22 +44,58 @@ def randomize_mp3_list(s):
     r = list(np.random.permutation(len(s)))
     return [s[x] for x in r]
 
+# Print the song
+def show_song(title):
+    print 'Will play this song: ' + title
+    return None
+
+# Play the song
+def play_song(title):
+    subprocess.call("omxplayer " + play_this, shell=True)
+    return None
+
 play_list = randomize_mp3_list(mp3_list)
 number_of_songs = len(mp3_list)
 
 # Main loop
+
+# Count the number of times the PIR has been detected
 pircount = 0
+
+# The PIR is sensitive and can be triggered multiple times
+# by a single motion.  This counter counts the number of
+# times the PIR is triggered after the initial trigger.
 pir_music_trigger_count = 0
+
+# Count the number of times the door has been triggered
 doorcount = 0
+
+# Count the number of times a song has been played
 play_count = 0
+
+# Has the door been opened for the first time?
+door_open_first_time
+
+"""
+Basic Behaviour
+
+When the door opens, the initial welcome song is played.
+At this point the PIR is not activated.  After the door
+is opened, the PIR is available to be triggered.
+
+"""
+
 while True:
     print("Listening for events")
     play_this = random_mp3_file(mp3_list)
 
+    motion_detected = io.input(pir_pin)
+    door_open = io.input(door_pin)
+
     # Check the PIR
     # True means that motion was detected
     # False means that no motion was detected
-    if io.input(pir_pin):
+    if motion_detected:
         # Advance the PIR Count
         pircount +=1
         print("PIR ALARM! - Motion detected %i " % pircount)
@@ -77,13 +113,13 @@ while True:
             pir_music_trigger_count = 0
 
             # Play it
-            print 'Will play ' + play_this
-            subprocess.call("omxplayer " + play_this, shell=True)
+            show_song(play_this)
+            play_song(play_this)
 
     # Check the door
     # True means the door is open
     # False means the door is closed
-    if not io.input(door_pin):
+    if not door_open:
         # Advance the door count
         doorcount +=1
         print("DOOR ALARM! - Door close detected %i " % doorcount)
@@ -101,7 +137,8 @@ while True:
         play_this = play_list[play_count-1]
 
         # Play it
-        subprocess.call("omxplayer " + play_this, shell=True)
+        show_song(play_this)
+        play_song(play_this)
 
     time.sleep(time_delay_in_seconds)
 
