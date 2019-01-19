@@ -1,8 +1,12 @@
 #
-# Initial code to test the detection of events
+# Code to find songs and play them in reaction
+# to events triggered through the door detector
+# and the motion detector
 #
-# This script must be run using sudo
+# TODO: put in the crontab so it runs automatically when the
+# machine is switched on
 #
+
 import time
 import subprocess
 import random
@@ -50,14 +54,9 @@ def get_filepaths(song_directory, file_extension):
 def get_music_list(song_directory, file_extensions=['mp3', 'm4a']):
     music = []
     for file_extension in file_extensions:
-        print song_directory + '/*.' + file_extension
         files = get_filepaths(song_directory, file_extension)
         music = music + files
     return music
-
-# Pick a random song from a list
-def random_music_file(s):
-    return random.choice(s)
 
 # Randomize the list of songs
 def randomize_music_list(s):
@@ -71,8 +70,7 @@ def show_song(title):
 
 # Play the song
 def play_song(title):
-    t = title.replace("'", "\'")
-    subprocess.call("omxplayer '" + t + "'", shell=True)
+    subprocess.call('omxplayer "' + title + '"', shell=True)
     return None
 
 def play_song_and_notify(title, time_delay_in_seconds):
@@ -106,8 +104,13 @@ doorcount = 0
 # Count the number of times a song has been played
 play_count = 0
 
-#
+# The first song that is played when the door is
+# opened for the first time
 first_song_when_door_is_opened = '/home/pi/mp3/John_Wesley_Coleman_-_07_-_Tequila_10_Seconds.mp3'
+
+# When the door opens for the first time the motion
+# detector is used to change songs.
+door_open_for_first_time = False
 
 """
 Basic Behaviour
@@ -117,7 +120,6 @@ At this point the PIR is not activated.  After the door
 is opened, the PIR is available to be triggered.
 
 """
-door_open_for_first_time = False
 while True:
     print("Listening for events")
 
@@ -136,8 +138,7 @@ while True:
         door_open_for_first_time = True
 
     while door_open:
-        # Detect motion
-        # Check the PIR
+        # Detect motion by checking the PIR
         # True means that motion was detected
         # False means that no motion was detected
         motion_detected = io.input(pir_pin)
@@ -175,5 +176,6 @@ while True:
                 # Play it
                 play_song_and_notify(play_this, time_delay_in_seconds)
 
+    # Door is closed, so reset.
     if ~door_open:
         door_open_for_first_time = False
