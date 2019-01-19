@@ -7,12 +7,14 @@ import time
 import subprocess
 import random
 import glob
+import os
+import fnmatch
 import numpy as np
 import RPi.GPIO as io
 io.setmode(io.BCM)
 
-# Directory holding all the MP3 files
-mp3_directory = '/home/pi/mp3'
+# Directory holding all the song files
+song_directory = '/home/pi/music'
 
 # The pause between event detection attempts
 time_delay_in_seconds = 0.2
@@ -32,15 +34,33 @@ io.setup(pir_pin, io.IN)
 # Activate input of the door
 io.setup(door_pin, io.IN, pull_up_down=io.PUD_UP)
 
-# Get a list of all the mp3 files
-mp3_list = glob.glob(mp3_directory + '/*.mp3')
+# Recursively find all the filepaths
+def get_filepaths(song_directory, file_extension):
+    matches = []
+    for root, dirnames, filenames in os.walk(song_directory):
+        filtered_filenames = []
+        for f in filenames:
+            if f[0] is not '.':
+                filtered_filenames.append(f)
+        for filename in fnmatch.filter(filtered_filenames, '*.' + file_extension):
+            matches.append(os.path.join(root, filename))
+    return matches
+
+# Find all the music file paths in the music directory
+def get_music_list(song_directory, file_extensions=['mp3', 'm4a']):
+    music = []
+    for file_extension in file_extensions:
+        print song_directory + '/*.' + file_extension
+        files = get_filepaths(song_directory, file_extension)
+        music = music + files
+    return music
 
 # Pick a random song from a list
-def random_mp3_file(s):
+def random_music_file(s):
     return random.choice(s)
 
 # Randomize the list of songs
-def randomize_mp3_list(s):
+def randomize_music_list(s):
     r = list(np.random.permutation(len(s)))
     return [s[x] for x in r]
 
@@ -51,7 +71,8 @@ def show_song(title):
 
 # Play the song
 def play_song(title):
-    subprocess.call("omxplayer " + title, shell=True)
+    t = title.replace("'", "\'")
+    subprocess.call("omxplayer '" + t + "'", shell=True)
     return None
 
 def play_song_and_notify(title, time_delay_in_seconds):
@@ -62,9 +83,12 @@ def play_song_and_notify(title, time_delay_in_seconds):
     time.sleep(time_delay_in_seconds)
     return None
 
+# Get a list of all the music files
+music_list = get_music_list(song_directory)
 
-play_list = randomize_mp3_list(mp3_list)
-number_of_songs = len(mp3_list)
+# Randomize the play list
+play_list = randomize_music_list(music_list)
+number_of_songs = len(play_list)
 
 # Main loop
 
@@ -130,10 +154,10 @@ while True:
             # If we have reached the end of the current randomized
             # play list, randomize the list again and start again
             if play_count > number_of_songs:
-                play_list = randomize_mp3_list(mp3_list)
+                play_list = randomize_music_list(music_list)
                 play_count = 1
 
-            # Get the next mp3
+            # Get the next music
             play_this = play_list[play_count-1]
 
             # The motion detector has been triggered enough! Now play
