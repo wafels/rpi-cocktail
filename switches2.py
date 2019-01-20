@@ -3,8 +3,11 @@
 # to events triggered through the door detector
 # and the motion detector
 #
-# TODO: put in the crontab so it runs automatically when the
-# machine is switched on
+# Run the script using the crontab
+# For example, on rebooting.
+# @reboot sudo /usr/bin/python /path/to/script/switches2.py
+#
+# TODO: send printed output to a log file
 #
 
 import time
