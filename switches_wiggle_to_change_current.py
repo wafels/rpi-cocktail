@@ -147,15 +147,18 @@ while True:
         # True means that motion was detected
         # False means that no motion was detected
         motion_detected = io.input(pir_pin)
-        door_open = io.input(door_pin)
-        print('Motion detected: ' + str(motion_detected))
-        if motion_detected and door_open:
-            # Advance the PIR Count
-            pircount +=1
-            # print("PIR ALARM! - Motion detected %i " % pircount)
 
-            # Advance the PIR music trigger count
-            pir_music_trigger_count = pir_music_trigger_count + 1
+        # Add to the trigger count
+        if motion_detected:
+            pir_music_trigger_count += 1
+
+        # Door open or not?
+        door_open = io.input(door_pin)
+
+        # The motion detector has been triggered enough! Now play
+        # some music.  A trigger limit is required since the PIR
+        # is very sensitive.
+        if (pir_music_trigger_count > pir_play_trigger_limit) and door_open:
 
             # If we have reached the end of the current randomized
             # play list, randomize the list again and start again
@@ -166,23 +169,17 @@ while True:
             # Get the next music
             play_this = play_list[play_count-1]
 
-            # The motion detector has been triggered enough! Now play
-            # some music.  A trigger limit is required since the PIR
-            # is very sensitive.
-            if pir_music_trigger_count > pir_play_trigger_limit:
-                print("PIR ALARM! music will now change")
+            # Reset the trigger count
+            pir_music_trigger_count = 0
 
-                # Reset the trigger count
-                pir_music_trigger_count = 0
+            # Advance the play counter
+            play_count = play_count + 1
 
-                # Advance the play counter
-                play_count = play_count + 1
+            # Kill the existing process
+            os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
-                # Kill the existing process
-                os.killpg(os.getpgid(p.pid), signal.SIGTERM)
-
-                # Play it
-                p = play_song_and_notify(play_this, time_delay_in_seconds)
+            # Play it
+            p = play_song_and_notify(play_this, time_delay_in_seconds)
 
     # Door is closed, so reset.
     if ~door_open:
