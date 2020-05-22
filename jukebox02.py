@@ -16,6 +16,7 @@ import random
 import glob
 import os
 import fnmatch
+import signal
 import psutil
 import numpy as np
 import RPi.GPIO as io
@@ -23,6 +24,7 @@ io.setmode(io.BCM)
 
 # Directory holding all the song files
 song_directory = '/home/pi/music'
+song_directory = '/home/pi/mp3'
 
 # The pause between event detection attempts
 time_delay_in_seconds = 0.2
@@ -55,6 +57,7 @@ def checkIfProcessRunning(processName):
         try:
             # Check if process name contains the given name string.
             if processName.lower() in proc.name().lower():
+                print proc.name().lower()
                 return True
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
@@ -91,14 +94,19 @@ def kill_proc_tree(pid, sig=signal.SIGTERM, include_parent=True,
     """
     if pid == os.getpid():
         raise RuntimeError("I refuse to kill myself")
-    parent = psutil.Process(pid)
-    children = parent.children(recursive=True)
-    if include_parent:
-        children.append(parent)
-    for p in children:
-        p.send_signal(sig)
-    gone, alive = psutil.wait_procs(children, timeout=timeout,
+    try:
+        parent = psutil.Process(pid)
+        children = parent.children(recursive=True)
+        if include_parent:
+            children.append(parent)
+        for p in children:
+            p.send_signal(sig)
+        gone, alive = psutil.wait_procs(children, timeout=timeout,
                                     callback=on_terminate)
+    except psutil.NoSuchProcess:
+        print 'No such process'
+        gone = None
+        alive = None
     return (gone, alive)
 
 # Kill processes
@@ -182,7 +190,7 @@ play_count = 0
 # The first song that is played when the door is
 # opened for the first time
 welcome_song = '/home/pi/mp3/John_Wesley_Coleman_-_07_-_Tequila_10_Seconds.mp3'
-
+play_welcome_song = True
 """
 Basic Behaviour
 
@@ -198,19 +206,23 @@ while True:
     # True means that the door is open
     # False means that the door is closed
     door_open = io.input(door_pin)
-
+    print door_open
     # If the door is closed then kill all the song processes
-    if ~door_open:
+    if door_open == 0:
         # Find the song processes and kill them
-        song_processes = findProcessIdByName('omxplayer')
+        print 'Door closed'
+        song_processes = findProcessIdByName('omxplayer.bin')
         kill_processes(song_processes)
         play_welcome_song = True
-    else:
+    if door_open == 1:
+        print 'Door open'
         # Check if a song is playing
-        player_running = checkIfProcessRunning('omxplayer')
+        player_running = checkIfProcessRunning('omxplayer.bin')
         if player_running:
+            print('Player running')
             pass
         else:
+            print('Player not running')
             # No player running?  Play a song!
             # Play the welcome song the first time the door is open
             if play_welcome_song:
